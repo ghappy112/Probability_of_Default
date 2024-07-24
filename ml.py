@@ -300,25 +300,24 @@ for col in ["home_ownership", "purpose"]:
     ohe = OneHotEncoder()
     dfx[ohe.categories_[0]] = ohe.fit_transform(dfx[[col]]).toarray()
     del dfx[col]
-y = dfx["default"].values
-X = dfx
 
-# train test split
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.10, random_state=42)
-
-# feature selection with predictive power score
-X_train["default"] = X_train["default"].astype(str)
-pps_df = pps.predictors(X_train.fillna(-1), "default")
+# predictive power score
+dfx["default"] = dfx["default"].astype(str)
+pps_df = pps.predictors(dfx.fillna(-1), "default")
 plt.figure(figsize=(20, 6))
 sns.barplot(data=pps_df, x="x", y="ppscore")
 locs, labels = plt.xticks()
 plt.setp(labels, rotation=90)
 plt.show()
-best_features = pps_df[pps_df["model_score"] > pps_df["baseline_score"] + 0.001]["x"].values
-print("Best Features:", best_features, "\n")
-X = X[best_features].to_numpy()
-X_train = X_train[best_features].to_numpy()
-X_test = X_test[best_features].to_numpy()
+
+# prepare data for ml
+dfx["default"] = dfx["default"].astype(int)
+y = dfx["default"].values
+del dfx["default"]
+X = dfx.to_numpy()
+
+# train test split
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.10, random_state=42)
 
 # ml
 model = xgb.XGBClassifier(
@@ -338,12 +337,11 @@ print("AUC:     ", roc_auc_score(y_test, model.predict(X_test)), "\n")
 
 # feature importances
 importances = model.feature_importances_
-feature_importance_df = pd.DataFrame({'Feature': best_features, 'Importance': importances})
+feature_importance_df = pd.DataFrame({'Feature': dfx.columns, 'Importance': importances})
 feature_importance_df.sort_values(by='Importance', ascending=False, inplace=True)
-plt.barh(feature_importance_df['Feature'], feature_importance_df['Importance'])
-plt.xlabel('Importance')
-plt.ylabel('Feature')
-plt.title('Feature Importance with Model')
+plt.figure(figsize=(25, 10))
+my_plot = sns.barplot(data=feature_importance_df, x="Feature", y="Importance")
+my_plot.set_xticklabels(my_plot.get_xticklabels(), rotation=90)
 plt.show()
 
 # eval
@@ -412,5 +410,3 @@ model.fit(X, y, sample_weight=class_weights)
 import pickle
 with open('model.pkl', 'wb') as file:
     pickle.dump(model, file)
-with open("best_features.txt", "w") as file:
-  file.write(str(list(best_features)))
