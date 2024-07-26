@@ -138,7 +138,7 @@ usecols = [
 ]
 
 # load data
-df = pd.read_csv("C:/Users/gregh/Downloads/archive (6)/accepted_2007_to_2018q4.csv/accepted_2007_to_2018Q4.csv", usecols=usecols)
+df = pd.read_csv("accepted_2007_to_2018Q4.csv", usecols=usecols)
 
 # filter data
 df = df[df["loan_status"] != "Current"] # filter out current loans
